@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevPunks — AI-first development company</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root[data-theme="dark"] {
+      --bg: #000;
+      --bg-surface: #0f0f0f;
+      --bg-input: #111;
+      --border: #222;
+      --border-input: #333;
+      --text-primary: #fff;
+      --text-secondary: #666;
+      --text-muted: #444;
+      --chip-bg: #111;
+      --chip-hover: #1a1a1a;
+      --chip-border: #2a2a2a;
+      --accent: #E50051;
+      --send-bg: #fff;
+      --send-color: #000;
+      --send-hover: #e5e5e5;
+    }
+    :root[data-theme="light"] {
+      --bg: #fff;
+      --bg-surface: #fafafa;
+      --bg-input: #f5f5f5;
+      --border: #e8e8e8;
+      --border-input: #ddd;
+      --text-primary: #000;
+      --text-secondary: #999;
+      --text-muted: #bbb;
+      --chip-bg: #f5f5f5;
+      --chip-hover: #ebebeb;
+      --chip-border: #e0e0e0;
+      --accent: #E50051;
+      --send-bg: #000;
+      --send-color: #fff;
+      --send-hover: #222;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background 0.25s, color 0.25s;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 60px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      backdrop-filter: blur(12px);
+      animation: fadeDown 0.5s ease both;
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+    .logo svg { width: 120px; height: auto; }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+    nav a {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      letter-spacing: 0.01em;
+      transition: color 0.15s;
+    }
+    nav a:hover { color: var(--text-primary); }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .lang-toggle {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: transparent;
+      transition: all 0.15s;
+      display: flex;
+      gap: 6px;
+    }
+    .lang-toggle span { transition: color 0.15s; }
+    .lang-toggle span.active { color: var(--text-primary); }
+    .lang-toggle:hover { border-color: var(--text-secondary); }
+
+    .theme-toggle {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      transition: all 0.15s;
+    }
+    .theme-toggle:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+    .theme-toggle svg { width: 16px; height: 16px; }
+    .icon-sun { display: none; }
+    [data-theme="dark"] .icon-sun { display: block; }
+    [data-theme="dark"] .icon-moon { display: none; }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 1.5rem 2rem;
+      min-height: 100vh;
+    }
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2.5rem;
+      width: 100%;
+      max-width: 720px;
+      animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero-text {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .hero-title {
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 500;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      color: var(--text-primary);
+    }
+
+    .hero-sub {
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+      font-weight: 400;
+      letter-spacing: -0.01em;
+    }
+
+    /* ── INPUT ── */
+    .chat-wrap {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .chat-box {
+      position: relative;
+      background: var(--bg-input);
+      border: 1px solid var(--border-input);
+      border-radius: 18px;
+      padding: 1.125rem 1.25rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .chat-box:focus-within {
+      border-color: #444;
+      box-shadow: 0 0 0 3px rgba(229,0,81,0.08);
+    }
+    [data-theme="light"] .chat-box:focus-within {
+      border-color: #bbb;
+      box-shadow: 0 0 0 3px rgba(229,0,81,0.06);
+    }
+
+    .chat-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 1rem;
+      color: var(--text-primary);
+      resize: none;
+      min-height: 28px;
+      max-height: 200px;
+      line-height: 1.6;
+      padding-right: 44px;
+    }
+    .chat-input::placeholder { color: var(--text-muted); }
+
+    .chat-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .chat-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .send-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: none;
+      background: var(--send-bg);
+      color: var(--send-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, transform 0.15s;
+      flex-shrink: 0;
+    }
+    .send-btn:hover { background: var(--send-hover); transform: scale(1.05); }
+    .send-btn svg { width: 15px; height: 15px; }
+
+    /* ── CHIPS ── */
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+
+    .chip {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      background: var(--chip-bg);
+      border: 1px solid var(--chip-border);
+      border-radius: 100px;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: -0.01em;
+    }
+    .chip:hover {
+      background: var(--chip-hover);
+      color: var(--text-primary);
+      border-color: var(--text-muted);
+    }
+
+    /* ── STATS ── */
+    .stats {
+      display: flex;
+      gap: 3rem;
+      justify-content: center;
+      margin-top: 1rem;
+      animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+    }
+
+    .stat {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .stat-num {
+      font-size: 1.25rem;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+    }
+    .stat-num span { color: var(--accent); }
+    .stat-label {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 1.25rem 2rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      animation: fadeUp 0.5s ease 0.4s both;
+    }
+
+    .footer-left {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: -0.01em;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.25rem;
+    }
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s;
+      display: flex;
+      align-items: center;
+    }
+    .footer-links a:hover { color: var(--text-secondary); }
+    .footer-links svg { width: 16px; height: 16px; }
+
+    /* ── CHAT RESPONSE ── */
+    .chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 100%;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .msg {
+      display: flex;
+      gap: 0.75rem;
+      animation: fadeUp 0.3s ease both;
+    }
+    .msg.user { flex-direction: row-reverse; }
+
+    .msg-bubble {
+      max-width: 80%;
+      padding: 0.625rem 1rem;
+      border-radius: 14px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    .msg.user .msg-bubble {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 14px 14px 4px 14px;
+    }
+    .msg.agent .msg-bubble {
+      background: var(--chip-bg);
+      border: 1px solid var(--chip-border);
+      color: var(--text-primary);
+      border-radius: 14px 14px 14px 4px;
+    }
+
+    .msg-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .msg.agent .msg-avatar {
+      background: var(--chip-bg);
+      border: 1px solid var(--chip-border);
+      color: var(--text-primary);
+      padding: 3px;
+    }
+    .msg.user .msg-avatar {
+      background: var(--chip-bg);
+      border: 1px solid var(--chip-border);
+      color: var(--text-secondary);
+    }
+
+    .typing {
+      display: flex;
+      gap: 4px;
+      padding: 4px 0;
+    }
+    .typing span {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      animation: blink 1.2s ease infinite;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.3; transform: scale(0.9); }
+      40% { opacity: 1; transform: scale(1.1); }
+    }
+
+    /* ── ACCENT LINE ── */
+    .accent-line {
+      width: 1px;
+      height: 40px;
+      background: linear-gradient(to bottom, var(--accent), transparent);
+      margin: 0 auto;
+      opacity: 0.6;
+    }
+
+    /* scrollbar */
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-track { background: transparent; }
+    .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <a class="logo" href="#">
+    <svg width="826" height="203" viewBox="0 0 826 203" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M404.431 77.2407L385.797 98.92C387.364 102.561 388.232 106.589 388.232 111.074C388.232 118.863 385.894 125.35 381.217 130.583C376.54 135.792 370.369 138.42 362.655 138.42C355.158 138.42 349.035 135.84 344.286 130.703C339.537 125.543 337.175 119.032 337.175 111.098C337.175 103.188 339.537 96.6532 344.286 91.5167C349.035 86.3561 355.158 83.8 362.655 83.8C367.983 83.8 372.515 85.1263 376.396 87.6101L392.426 65.979C385.17 61.3249 376.902 58.9375 367.573 58.9375C355.086 58.9375 345.226 63.4711 338.019 72.5383V61.5902H311.936V202.542H338.525V150.405C345.757 158.99 355.472 163.283 367.669 163.283C381.386 163.283 392.812 158.315 401.924 148.356C411.061 138.396 415.641 125.977 415.641 111.098C415.641 97.7866 411.76 86.5973 404.431 77.2407Z" fill="currentColor"/>
+      <path d="M521.443 118.429C521.443 126.001 520.19 132.729 517.659 138.589C515.128 144.449 511.68 149.151 507.269 152.648C502.857 156.144 497.916 158.797 492.444 160.582C486.947 162.366 480.993 163.234 474.605 163.234C469.567 163.234 464.745 162.68 460.189 161.594C455.609 160.485 451.342 158.773 447.365 156.434C443.387 154.071 439.94 151.177 437.023 147.728C434.13 144.28 431.84 140.06 430.177 135.044C428.49 130.028 427.67 124.482 427.67 118.405V61.5176H454.356V116.065C454.356 123.638 456.188 129.256 459.876 132.898C463.564 136.539 468.482 138.372 474.605 138.372C480.752 138.372 485.646 136.539 489.334 132.898C493.022 129.256 494.854 123.638 494.854 116.065V61.5176H521.443V118.429Z" fill="currentColor"/>
+      <path d="M590.122 58.8887C601.452 58.8887 610.709 62.4818 617.893 69.6439C625.076 76.8061 628.692 86.1144 628.692 97.569V160.702H601.983V106.154C601.983 98.9918 600.319 93.4936 596.968 89.6834C593.618 85.8733 588.845 83.9441 582.649 83.9441C576.575 83.9441 571.56 85.8733 567.607 89.7317C563.654 93.59 561.677 99.1365 561.677 106.371V160.702H534.967V61.5413H560.954V73.2129C567.39 63.6634 577.105 58.8887 590.122 58.8887Z" fill="currentColor"/>
+      <path d="M670.589 96.8452H679.991L707.906 61.541H740.642L701.566 108.203L737.484 160.677H704.651L679.581 120.574H670.589V160.677H643.879V61.541H670.589V96.8452Z" fill="currentColor"/>
+      <path d="M265.917 160.677H235.133L195.96 61.541H225.008L250.681 132.535L276.548 61.541H304.68L265.917 160.677Z" fill="currentColor"/>
+      <path d="M172.842 128.919C167.515 135.84 159.27 140.349 149.845 140.349C136.779 140.349 125.859 131.74 122.074 119.948H199.094C199.6 117.055 199.914 114.088 199.914 111.05C199.914 82.2326 178.676 58.8652 149.869 58.8652C121.062 58.8652 97.7029 82.2326 97.7029 111.05C97.7029 139.867 121.062 163.235 149.869 163.235C165.659 163.235 179.761 156.193 189.331 145.124L172.842 128.919ZM149.845 81.7503C162.766 81.7503 172.071 90.1664 175.976 101.79H122.195C126.076 90.1905 136.924 81.7503 149.845 81.7503Z" fill="currentColor"/>
+      <path d="M783.768 163.499C762.265 163.499 740.401 153.274 737.243 151.73L748.019 129.521C759.879 135.26 782.973 142.494 794.182 137.117C795.99 136.249 797.461 135.405 798.473 134.416C801.101 131.908 800.402 128.243 797.292 126.603C795.267 125.518 791.217 124.553 787.095 124.143C775.452 123.034 768.051 121.08 760.771 117.56C751.707 113.195 745.608 106.66 743.125 98.7259C741.51 93.5653 740.714 85.3663 746.114 75.7685C754.045 61.6854 772.318 55.8014 795.05 59.9974C809.321 62.65 822.17 69.0887 822.724 69.354L811.611 91.395C811.515 91.3468 801.269 86.2585 790.566 84.257C784.564 83.1477 769.136 81.0738 767.448 87.7295C766.532 91.3709 770.389 94.3611 772.028 95.1569C776.56 97.3514 781.912 98.6295 790.47 99.7146C814.311 102.753 823.351 114.594 825.352 125.807C827.69 139.022 819.614 152.14 804.789 159.254C798.28 162.317 791.048 163.499 783.768 163.499Z" fill="currentColor"/>
+      <path d="M40.4021 61.541H40.3781H0V160.653H27.891V160.581H40.7155V160.557C67.9074 160.388 89.8924 138.299 89.8924 111.049C89.8924 83.7026 67.7387 61.541 40.4021 61.541ZM36.8585 140.204H24.1545V81.9181H36.6175L36.6416 81.894C52.7446 81.894 65.7861 94.9402 65.7861 111.049C65.8102 127.085 52.8651 140.083 36.8585 140.204Z" fill="currentColor"/>
+      <path d="M353.736 124.457L459.78 0H394.379L352.603 123.951L353.736 124.457Z" fill="#E50051"/>
+    </svg>
+  </a>
+
+  <nav>
+    <a href="#">Services</a>
+    <a href="#">Projects</a>
+    <a href="#">About</a>
+  </nav>
+
+  <div class="header-actions">
+    <button class="lang-toggle" onclick="toggleLang(this)">
+      <span class="active" id="lang-en">EN</span>
+      <span style="color:var(--text-muted)">/</span>
+      <span id="lang-ru">RU</span>
+    </button>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+      <!-- sun -->
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <!-- moon -->
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+  <div class="hero">
+    <div class="hero-text">
+      <h1 class="hero-title" id="hero-title">What can we build for you?</h1>
+      <p class="hero-sub" id="hero-sub">AI-first software company · Since 2012</p>
+    </div>
+
+    <div class="chat-wrap">
+      <!-- messages appear here -->
+      <div class="chat-messages" id="messages" style="display:none"></div>
+
+      <div class="chat-box">
+        <textarea
+          class="chat-input"
+          id="chat-input"
+          rows="1"
+          placeholder="Describe your project..."
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+        <div class="chat-actions">
+          <span class="chat-hint" id="chat-hint">Press Enter to send</span>
+          <button class="send-btn" onclick="sendMessage()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="chips" id="chips">
+        <button class="chip" onclick="fillInput(this)">Build a web app</button>
+        <button class="chip" onclick="fillInput(this)">Integrate AI into my product</button>
+        <button class="chip" onclick="fillInput(this)">UX/UI Design</button>
+        <button class="chip" onclick="fillInput(this)">Tech consulting</button>
+        <button class="chip" onclick="fillInput(this)">Mobile app</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num">13<span>+</span></div>
+        <div class="stat-label">Years</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">50<span>+</span></div>
+        <div class="stat-label">Projects</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">20<span>+</span></div>
+        <div class="stat-label">Countries</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <span class="footer-left">© DevPunks · 2012–2026</span>
+  <div class="footer-links">
+    <!-- Telegram -->
+    <a href="#" aria-label="Telegram">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+      </svg>
+    </a>
+    <!-- LinkedIn -->
+    <a href="#" aria-label="LinkedIn">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+      </svg>
+    </a>
+  </div>
+</footer>
+
+<script>
+  // ── THEME ──
+  function toggleTheme() {
+    const html = document.documentElement;
+    html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  }
+
+  // ── LANG ──
+  const copy = {
+    en: {
+      title: 'What can we build for you?',
+      sub: 'AI-first software company · Since 2012',
+      placeholder: 'Describe your project...',
+      hint: 'Press Enter to send',
+      chips: ['Build a web app', 'Integrate AI into my product', 'UX/UI Design', 'Tech consulting', 'Mobile app'],
+    },
+    ru: {
+      title: 'Что создадим для вас?',
+      sub: 'AI-first компания · С 2012 года',
+      placeholder: 'Опишите ваш проект...',
+      hint: 'Enter — отправить',
+      chips: ['Веб-приложение', 'Интегрировать AI', 'UX/UI Дизайн', 'Консалтинг', 'Мобильное приложение'],
+    }
+  };
+  let lang = 'en';
+  function toggleLang(btn) {
+    lang = lang === 'en' ? 'ru' : 'en';
+    document.getElementById('lang-en').className = lang === 'en' ? 'active' : '';
+    document.getElementById('lang-ru').className = lang === 'ru' ? 'active' : '';
+    const c = copy[lang];
+    document.getElementById('hero-title').textContent = c.title;
+    document.getElementById('hero-sub').textContent = c.sub;
+    document.getElementById('chat-input').placeholder = c.placeholder;
+    document.getElementById('chat-hint').textContent = c.hint;
+    document.querySelectorAll('.chip').forEach((chip, i) => { chip.textContent = c.chips[i]; });
+  }
+
+  // ── CHAT ──
+  const agentReplies = {
+    en: [
+      "Hi! I'm the DevPunks AI assistant. Tell me more about your project — what problem are you trying to solve?",
+      "That sounds like a great fit for us. We've built similar solutions before. Could you share your timeline and budget range?",
+      "Perfect. Our team will reach out within 24 hours. Would you like to leave your email or Telegram handle?",
+    ],
+    ru: [
+      "Привет! Я AI-ассистент DevPunks. Расскажите подробнее — какую задачу нужно решить?",
+      "Это как раз наш профиль. Мы делали похожие решения. Какой у вас тайминг и примерный бюджет?",
+      "Отлично. Наша команда свяжется в течение 24 часов. Оставьте email или Telegram?",
+    ]
+  };
+  let replyIdx = 0;
+
+  const agentAvatarSVG = `<svg viewBox="308 0 155 210" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+    <path d="M404.431 77.2407L385.797 98.92C387.364 102.561 388.232 106.589 388.232 111.074C388.232 118.863 385.894 125.35 381.217 130.583C376.54 135.792 370.369 138.42 362.655 138.42C355.158 138.42 349.035 135.84 344.286 130.703C339.537 125.543 337.175 119.032 337.175 111.098C337.175 103.188 339.537 96.6532 344.286 91.5167C349.035 86.3561 355.158 83.8 362.655 83.8C367.983 83.8 372.515 85.1263 376.396 87.6101L392.426 65.979C385.17 61.3249 376.902 58.9375 367.573 58.9375C355.086 58.9375 345.226 63.4711 338.019 72.5383V61.5902H311.936V202.542H338.525V150.405C345.757 158.99 355.472 163.283 367.669 163.283C381.386 163.283 392.812 158.315 401.924 148.356C411.061 138.396 415.641 125.977 415.641 111.098C415.641 97.7866 411.76 86.5973 404.431 77.2407Z" fill="currentColor"/>
+    <path d="M353.736 124.457L459.78 0H394.379L352.603 123.951L353.736 124.457Z" fill="#E50051"/>
+  </svg>`;
+
+  function addMsg(text, role) {
+    const wrap = document.getElementById('messages');
+    wrap.style.display = 'flex';
+    const msg = document.createElement('div');
+    msg.className = `msg ${role}`;
+    msg.innerHTML = `
+      <div class="msg-avatar">${role === 'agent' ? agentAvatarSVG : 'me'}</div>
+      <div class="msg-bubble">${text}</div>
+    `;
+    wrap.appendChild(msg);
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  function addTyping() {
+    const wrap = document.getElementById('messages');
+    const msg = document.createElement('div');
+    msg.className = 'msg agent';
+    msg.id = 'typing-indicator';
+    msg.innerHTML = `
+      <div class="msg-avatar">${agentAvatarSVG}</div>
+      <div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>
+    `;
+    wrap.appendChild(msg);
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+    document.getElementById('chips').style.display = 'none';
+    addMsg(text, 'user');
+    input.value = '';
+    input.style.height = 'auto';
+    addTyping();
+    setTimeout(() => {
+      document.getElementById('typing-indicator')?.remove();
+      const replies = agentReplies[lang];
+      addMsg(replies[replyIdx % replies.length], 'agent');
+      replyIdx++;
+    }, 1200);
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
+  function fillInput(chip) {
+    const input = document.getElementById('chat-input');
+    input.value = chip.textContent;
+    input.focus();
+    autoResize(input);
+  }
+</script>
+</body>
+</html>
