@@ -435,6 +435,22 @@
     .chat-messages::-webkit-scrollbar { width: 4px; }
     .chat-messages::-webkit-scrollbar-track { background: transparent; }
     .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── MOBILE ── */
+    @media (max-width: 600px) {
+      header { padding: 0 1rem; }
+      .logo svg { width: 90px; }
+      nav { display: none; }
+      .lang-toggle { padding: 4px 8px; font-size: 0.7rem; }
+      main { padding: 72px 1rem 1.5rem; }
+      .hero { gap: 1.75rem; }
+      .hero-title { font-size: 1.75rem; }
+      .hero-sub { font-size: 0.875rem; }
+      .chips { gap: 0.375rem; }
+      .chip { font-size: 0.75rem; padding: 5px 11px; }
+      .stats { gap: 2rem; }
+      footer { padding: 1rem; flex-direction: column; gap: 0.75rem; align-items: center; }
+    }
   </style>
 </head>
 <body>
