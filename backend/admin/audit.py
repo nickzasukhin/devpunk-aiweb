@@ -5,7 +5,7 @@ from database import AuditLog
 import uuid
 
 
-def log_action(db: Session, action: str, user_id=None, details: Optional[str] = None, ip: Optional[str] = None):
+def log_action(db: Session, user_id=None, action: str = "", details: Optional[str] = None, ip: Optional[str] = None):
     entry = AuditLog(
         id=uuid.uuid4(),
         user_id=user_id,
