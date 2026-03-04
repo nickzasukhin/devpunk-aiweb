@@ -98,7 +98,6 @@ async def get_voice_config(db: Session = Depends(get_db)):
     return {
         "transcriber": {
             "provider": "gladia",  # multilingual auto-detection (EN + RU + others)
-            "endpointing": 400,    # ms of silence before speech is considered done
         },
         "model": _build_model_config(db, system_prompt),
         "voice": _build_voice_config(db),
