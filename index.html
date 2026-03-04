@@ -946,15 +946,28 @@
     startVizLoop();
   }
 
-  function closeVoiceModal() {
-    if (callActive) endVoiceCall();
+  function resetVoiceState() {
+    const btn = document.getElementById('mic-btn');
+    const label = btn.querySelector('.mic-label');
+    callActive = false; currentVolume = 0;
+    btn.classList.remove('active', 'connecting');
+    label.textContent = 'Talk to AI';
     document.getElementById('voice-overlay').classList.remove('open');
     if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
-    currentVolume = 0;
+    vapiInstance = null;
+  }
+
+  function closeVoiceModal() {
+    if (vapiInstance) endVoiceCall();
+    else resetVoiceState();
   }
 
   function endVoiceCall() {
-    if (vapiInstance) vapiInstance.stop();
+    if (!vapiInstance) return;
+    try { vapiInstance.stop(); } catch(e) {}
+    // Fallback: if call-end never fires, reset after 2s
+    const inst = vapiInstance;
+    setTimeout(() => { if (vapiInstance === inst) resetVoiceState(); }, 2000);
   }
 
   function setVoiceStatus(text) {
@@ -999,7 +1012,7 @@
   function toggleVoice() {
     const btn = document.getElementById('mic-btn');
     const label = btn.querySelector('.mic-label');
-    if (callActive) { endVoiceCall(); return; }
+    if (vapiInstance) { endVoiceCall(); return; }  // stop if connecting OR active
     btn.classList.add('connecting');
     label.textContent = 'Connecting...';
     openVoiceModal();
@@ -1014,19 +1027,13 @@
     vapiInstance.on('volume-level', (v) => { currentVolume = v; });
     vapiInstance.on('speech-start', () => setVoiceStatus('You are speaking...'));
     vapiInstance.on('speech-end', () => setVoiceStatus('AI is responding...'));
-    vapiInstance.on('call-end', () => {
-      callActive = false; vapiInstance = null; currentVolume = 0;
-      btn.classList.remove('active', 'connecting'); label.textContent = 'Talk to AI';
-      closeVoiceModal();
-    });
+    vapiInstance.on('call-end', () => { resetVoiceState(); });
     vapiInstance.on('error', (e) => {
       console.error('Vapi error:', e);
-      callActive = false; currentVolume = 0;
-      btn.classList.remove('active', 'connecting'); label.textContent = 'Talk to AI';
       const msg = (e && (e.message || '').toLowerCase().includes('permission'))
         ? 'Microphone access denied' : 'Connection error — try again';
       setVoiceStatus(msg);
-      setTimeout(closeVoiceModal, 2000);
+      setTimeout(resetVoiceState, 2000);
     });
     vapiInstance.start({ serverUrl: 'https://api.devpunks.io/api/voice/webhook' });
   }

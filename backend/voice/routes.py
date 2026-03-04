@@ -31,21 +31,43 @@ async def vapi_webhook(request: Request, db: Session = Depends(get_db)):
     # Server message — provide system prompt and tools
     if message_type == "assistant-request":
         system_prompt = _get_config_value(db, "voice_system_prompt") or VOICE_PROMPT_DEFAULT
+
+        # Use same LLM provider as chat (from DB config)
+        llm_provider = _get_config_value(db, "llm_provider") or settings.LLM_PROVIDER
+        llm_model = _get_config_value(db, "llm_model") or settings.OPENAI_MODEL
+
+        if llm_provider == "openai":
+            model_config = {
+                "provider": "openai",
+                "model": llm_model,
+                "messages": [{"role": "system", "content": system_prompt}],
+            }
+        else:
+            model_config = {
+                "provider": "anthropic",
+                "model": settings.ANTHROPIC_MODEL,
+                "messages": [{"role": "system", "content": system_prompt}],
+            }
+
+        # Use ElevenLabs if configured, otherwise Vapi built-in voice
+        el_key = _get_config_value(db, "elevenlabs_api_key") or settings.ELEVENLABS_API_KEY
+        el_voice = _get_config_value(db, "elevenlabs_voice_id") or settings.ELEVENLABS_VOICE_ID
+        if el_key and el_voice:
+            voice_config = {
+                "provider": "11labs",
+                "voiceId": el_voice,
+                "model": _get_config_value(db, "elevenlabs_model") or settings.ELEVENLABS_MODEL,
+                "stability": float(_get_config_value(db, "elevenlabs_stability") or settings.ELEVENLABS_STABILITY),
+                "similarityBoost": float(_get_config_value(db, "elevenlabs_similarity_boost") or settings.ELEVENLABS_SIMILARITY_BOOST),
+                "style": float(_get_config_value(db, "elevenlabs_style") or settings.ELEVENLABS_STYLE),
+            }
+        else:
+            voice_config = {"provider": "vapi", "voiceId": "Elliot"}
+
         return {
             "assistant": {
-                "model": {
-                    "provider": "anthropic",
-                    "model": settings.ANTHROPIC_MODEL,
-                    "systemPrompt": system_prompt,
-                },
-                "voice": {
-                    "provider": "11labs",
-                    "voiceId": _get_config_value(db, "elevenlabs_voice_id") or settings.ELEVENLABS_VOICE_ID,
-                    "model": _get_config_value(db, "elevenlabs_model") or settings.ELEVENLABS_MODEL,
-                    "stability": float(_get_config_value(db, "elevenlabs_stability") or settings.ELEVENLABS_STABILITY),
-                    "similarityBoost": float(_get_config_value(db, "elevenlabs_similarity_boost") or settings.ELEVENLABS_SIMILARITY_BOOST),
-                    "style": float(_get_config_value(db, "elevenlabs_style") or settings.ELEVENLABS_STYLE),
-                },
+                "model": model_config,
+                "voice": voice_config,
                 "firstMessage": "Hi! I'm the DevPunks AI assistant. How can I help you today?",
             }
         }
