@@ -98,12 +98,6 @@ async def vapi_webhook(request: Request, db: Session = Depends(get_db)):
     """Handle Vapi.ai webhook for voice agent interactions."""
     body = await request.json()
     message_type = body.get("message", {}).get("type")
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.warning(f"[VAPI WEBHOOK] type={message_type} keys={list(body.keys())}")
-    if message_type in ("conversation-update", "end-of-call-report"):
-        import json
-        logger.warning(f"[VAPI BODY]: {json.dumps(body.get('message', {}))[:800]}")
 
     # Server message — provide system prompt and tools
     if message_type == "assistant-request":
