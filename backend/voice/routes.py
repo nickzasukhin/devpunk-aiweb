@@ -50,7 +50,6 @@ def _set_config_value(db: Session, key: str, value: str):
 
 
 def _build_agent_body(system_prompt: str, first_message: str, voice_id: str, db: Session) -> dict:
-    llm_model = _get_config_value(db, "llm_model") or "gpt-4o"
     stability = float(_get_config_value(db, "elevenlabs_stability") or 0.5)
     similarity = float(_get_config_value(db, "elevenlabs_similarity_boost") or 0.8)
     style = float(_get_config_value(db, "elevenlabs_style") or 0.0)
@@ -62,15 +61,21 @@ def _build_agent_body(system_prompt: str, first_message: str, voice_id: str, db:
             "agent": {
                 "prompt": {
                     "prompt": system_prompt,
-                    "llm": llm_model,
+                    "llm": "gemini-2.5-flash",  # built-in LLM, no extra key needed
                     "temperature": 0.7,
                     "max_tokens": -1,
+                    "built_in_tools": {
+                        # enables automatic EN/RU language switching mid-conversation
+                        "language_detection": {
+                            "name": "language_detection",
+                            "params": {},
+                        },
+                    },
                 },
                 "first_message": first_message,
-                "language": "auto",
+                # no language field = defaults to "en"; language_detection tool handles switching
             },
             "tts": {
-                "model_id": "eleven_turbo_v2_5",
                 "voice_id": voice_id,
                 "stability": stability,
                 "similarity_boost": similarity,
@@ -114,7 +119,7 @@ async def _update_agent(el_key: str, agent_id: str, agent_body: dict):
 async def _get_signed_url(el_key: str, agent_id: str) -> str:
     async with httpx.AsyncClient() as client:
         resp = await client.get(
-            f"{EL_API}/convai/conversations/get_signed_url",
+            f"{EL_API}/convai/conversation/get_signed_url",
             headers={"xi-api-key": el_key},
             params={"agent_id": agent_id},
             timeout=30.0,
@@ -133,7 +138,7 @@ async def get_convai_token(db: Session = Depends(get_db)):
     system_prompt = _get_config_value(db, "voice_system_prompt") or VOICE_PROMPT_DEFAULT
     full_prompt = system_prompt + VOICE_LANGUAGE_INSTRUCTION
     first_message = _get_config_value(db, "voice_first_message") or VOICE_FIRST_MESSAGE_DEFAULT
-    voice_id = _get_config_value(db, "elevenlabs_voice_id") or "JBFqnCBsd6RMkjVDRZzb"
+    voice_id = _get_config_value(db, "elevenlabs_voice_id") or "JBFqnCBsd6RMkjVDRZzb"  # George fallback
 
     agent_body = _build_agent_body(full_prompt, first_message, voice_id, db)
     agent_id = await _get_or_create_agent_id(db, el_key, agent_body)
