@@ -84,7 +84,7 @@ async def get_voice_config(db: Session = Depends(get_db)):
         "transcriber": {
             "provider": "deepgram",
             "model": "nova-2",
-            "language": "multi",  # auto-detects EN + RU
+            # no language → Deepgram auto-detects EN/RU
         },
         "model": _build_model_config(db, system_prompt),
         "voice": _build_voice_config(db),
