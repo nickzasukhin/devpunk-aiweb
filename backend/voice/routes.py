@@ -97,7 +97,9 @@ async def get_voice_config(db: Session = Depends(get_db)):
 
     return {
         "transcriber": {
-            "provider": "gladia",  # multilingual auto-detection (EN + RU + others)
+            "provider": "deepgram",
+            "model": "nova-2",
+            "language": "ru",  # primary language; LLM will respond in EN if user switches
         },
         "model": _build_model_config(db, system_prompt),
         "voice": _build_voice_config(db),
