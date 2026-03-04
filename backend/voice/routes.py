@@ -101,10 +101,9 @@ async def vapi_webhook(request: Request, db: Session = Depends(get_db)):
     import logging
     logger = logging.getLogger(__name__)
     logger.warning(f"[VAPI WEBHOOK] type={message_type} keys={list(body.keys())}")
-    if message_type == "conversation-update":
-        msgs = body.get("message", {}).get("conversation", [])
-        for m in msgs:
-            logger.warning(f"  [{m.get('role')}]: {str(m.get('content',''))[:120]}")
+    if message_type in ("conversation-update", "end-of-call-report"):
+        import json
+        logger.warning(f"[VAPI BODY]: {json.dumps(body.get('message', {}))[:800]}")
 
     # Server message — provide system prompt and tools
     if message_type == "assistant-request":
