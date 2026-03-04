@@ -6,9 +6,9 @@ export default defineConfig({
   build: { outDir: 'dist' },
   server: {
     proxy: {
-      '/api': 'http://localhost:8002',
-      '/auth': 'http://localhost:8002',
-      '/admin': 'http://localhost:8002',
+      '/api': { target: 'https://api.devpunks.io', changeOrigin: true, secure: true },
+      '/auth': { target: 'https://api.devpunks.io', changeOrigin: true, secure: true },
+      '/admin': { target: 'https://api.devpunks.io', changeOrigin: true, secure: true },
     }
   }
 })
