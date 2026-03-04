@@ -1009,14 +1009,24 @@
     draw();
   }
 
-  function toggleVoice() {
+  async function toggleVoice() {
     const btn = document.getElementById('mic-btn');
     const label = btn.querySelector('.mic-label');
-    if (vapiInstance) { endVoiceCall(); return; }  // stop if connecting OR active
+    if (vapiInstance) { endVoiceCall(); return; }
     btn.classList.add('connecting');
     label.textContent = 'Connecting...';
     openVoiceModal();
     setVoiceStatus('Connecting...');
+    let assistantConfig;
+    try {
+      const res = await fetch(`${API_URL}/api/voice/config`);
+      assistantConfig = await res.json();
+    } catch (e) {
+      console.error('Failed to load voice config:', e);
+      setVoiceStatus('Connection error — try again');
+      setTimeout(resetVoiceState, 2000);
+      return;
+    }
     vapiInstance = new Vapi(VAPI_PUBLIC_KEY);
     vapiInstance.on('call-start', () => {
       callActive = true;
@@ -1035,7 +1045,7 @@
       setVoiceStatus(msg);
       setTimeout(resetVoiceState, 2000);
     });
-    vapiInstance.start({ serverUrl: 'https://api.devpunks.io/api/voice/webhook' });
+    vapiInstance.start(assistantConfig);
   }
 
   function autoResize(el) {
