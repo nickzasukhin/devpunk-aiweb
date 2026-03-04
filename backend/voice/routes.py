@@ -99,18 +99,12 @@ async def get_voice_config(db: Session = Depends(get_db)):
         "transcriber": {
             "provider": "deepgram",
             "model": "nova-2",
-            "language": "ru",  # primary language; LLM will respond in EN if user switches
+            "detectLanguage": True,  # auto-detect EN / RU
         },
         "model": _build_model_config(db, system_prompt),
         "voice": _build_voice_config(db),
         "firstMessage": first_message,
         "serverUrl": "https://api.devpunks.io/api/voice/webhook",
-        # Prevent user from accidentally interrupting the AI response
-        "stopSpeakingPlan": {
-            "numWords": 3,
-            "voiceSeconds": 0.4,
-            "backoffSeconds": 1.5,
-        },
     }
 
 
