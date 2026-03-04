@@ -8,7 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web/dist/vapi.js"></script>
+  <script type="module">
+    import Vapi from 'https://cdn.jsdelivr.net/npm/@vapi-ai/web/+esm';
+    window.Vapi = Vapi.default || Vapi;
+  </script>
   <style>
     :root[data-theme="dark"] {
       --bg: #000;
@@ -1013,6 +1016,7 @@
     const btn = document.getElementById('mic-btn');
     const label = btn.querySelector('.mic-label');
     if (vapiInstance) { endVoiceCall(); return; }
+    if (!window.Vapi) { setVoiceStatus('Loading SDK...'); return; }
     btn.classList.add('connecting');
     label.textContent = 'Connecting...';
     openVoiceModal();
@@ -1027,7 +1031,7 @@
       setTimeout(resetVoiceState, 2000);
       return;
     }
-    vapiInstance = new Vapi(VAPI_PUBLIC_KEY);
+    vapiInstance = new window.Vapi(VAPI_PUBLIC_KEY);
     vapiInstance.on('call-start', () => {
       callActive = true;
       btn.classList.remove('connecting'); btn.classList.add('active');
