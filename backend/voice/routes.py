@@ -18,8 +18,20 @@ No markdown formatting, no bullet points, no code snippets.
 Use natural spoken language. Max 2-3 sentences per response.
 
 You can discuss: who DevPunks is, our services, tech stack, cases, how to get in touch.
-Respond in the same language the user speaks (Russian or English).
+
+CRITICAL LANGUAGE RULE: Detect the language of each user message and ALWAYS reply in that exact language.
+- If user speaks Russian → reply in Russian
+- If user speaks English → reply in English
+Never switch languages unless the user switches first.
 """
+
+# Language instruction appended to ANY custom prompt from DB
+VOICE_LANGUAGE_INSTRUCTION = """
+
+CRITICAL LANGUAGE RULE: Detect the language of each user message and ALWAYS reply in that exact language.
+- If user speaks Russian → reply in Russian
+- If user speaks English → reply in English
+Never switch languages unless the user switches first."""
 
 VOICE_FIRST_MESSAGE_DEFAULT = "Hi! I'm the DevPunks AI assistant. How can I help you today?"
 
@@ -61,16 +73,19 @@ def _build_model_config(db: Session, system_prompt: str) -> dict:
     llm_provider = _get_config_value(db, "llm_provider") or settings.LLM_PROVIDER
     llm_model = _get_config_value(db, "llm_model") or settings.OPENAI_MODEL
 
+    # Always append language rule so LLM responds in user's language
+    full_prompt = system_prompt + VOICE_LANGUAGE_INSTRUCTION
+
     if llm_provider == "openai":
         return {
             "provider": "openai",
             "model": llm_model,
-            "messages": [{"role": "system", "content": system_prompt}],
+            "messages": [{"role": "system", "content": full_prompt}],
         }
     return {
         "provider": "anthropic",
         "model": settings.ANTHROPIC_MODEL,
-        "messages": [{"role": "system", "content": system_prompt}],
+        "messages": [{"role": "system", "content": full_prompt}],
     }
 
 
@@ -83,8 +98,8 @@ async def get_voice_config(db: Session = Depends(get_db)):
     return {
         "transcriber": {
             "provider": "deepgram",
-            "model": "nova-2",
-            "endpointing": 400,  # ms of silence before speech is considered done
+            "model": "nova-2-general",  # supports multilingual auto-detection (EN + RU etc.)
+            "endpointing": 400,         # ms of silence before speech is considered done
         },
         "model": _build_model_config(db, system_prompt),
         "voice": _build_voice_config(db),
@@ -127,10 +142,12 @@ async def vapi_webhook(request: Request, db: Session = Depends(get_db)):
 
 
 def _save_voice_conversation(db: Session, body: dict):
-    call = body.get("call", {})
-    transcript = body.get("transcript", "")
-    audio_url = body.get("recordingUrl")
-    messages_data = body.get("messages", [])
+    # Vapi wraps all end-of-call-report data inside body["message"]
+    msg = body.get("message", {})
+    call = msg.get("call", {})
+    transcript = msg.get("transcript", "")
+    audio_url = msg.get("recordingUrl")
+    messages_data = msg.get("artifact", {}).get("messages", msg.get("messages", []))
 
     # Find or create visitor by call ID
     call_id = call.get("id", str(uuid.uuid4()))
