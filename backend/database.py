@@ -106,7 +106,7 @@ class Visitor(Base):
     __tablename__ = "visitors"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    anonymous_id = Column(String(36), unique=True, nullable=False, index=True)
+    anonymous_id = Column(String(128), unique=True, nullable=False, index=True)
     fingerprint = Column(String(512), nullable=True, index=True)
     first_seen_at = Column(DateTime, default=datetime.utcnow)
     last_seen_at = Column(DateTime, default=datetime.utcnow)
