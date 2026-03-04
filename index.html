@@ -940,6 +940,7 @@
   let conversationInstance = null;
   let callActive = false;
   let currentVolume = 0;
+  let currentConversationId = null;
   let animFrame = null;
   const vizBars = Array.from({length: 28}, () => ({ h: 0.05 }));
 
@@ -1033,13 +1034,24 @@
     try {
       conversationInstance = await window.ElevenLabsConversation.startSession({
         signedUrl,
-        onConnect: () => {
+        onConnect: (convId) => {
           callActive = true;
+          currentConversationId = convId;
           btn.classList.remove('connecting'); btn.classList.add('active');
           label.textContent = 'End call';
           setVoiceStatus('Listening...');
         },
-        onDisconnect: () => { resetVoiceState(); },
+        onDisconnect: () => {
+          if (currentConversationId) {
+            fetch(`${API_URL}/api/voice/save-conversation`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ conversation_id: currentConversationId }),
+            }).catch(console.error);
+            currentConversationId = null;
+          }
+          resetVoiceState();
+        },
         onError: (error) => {
           console.error('ElevenLabs error:', error);
           const msg = String(error).toLowerCase().includes('permission')

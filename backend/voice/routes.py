@@ -148,6 +148,69 @@ async def get_convai_token(db: Session = Depends(get_db)):
     return {"signedUrl": signed_url}
 
 
+@router.post("/save-conversation")
+async def save_conversation(request: Request, db: Session = Depends(get_db)):
+    """Called by frontend after call ends — fetches transcript from ElevenLabs and saves to DB."""
+    body = await request.json()
+    conversation_id = body.get("conversation_id")
+    if not conversation_id:
+        return {"status": "ok"}
+
+    el_key = _get_config_value(db, "elevenlabs_api_key") or settings.ELEVENLABS_API_KEY
+    if not el_key:
+        return {"status": "ok"}
+
+    # Wait briefly for ElevenLabs to finalize transcript
+    import asyncio
+    await asyncio.sleep(3)
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{EL_API}/convai/conversations/{conversation_id}",
+            headers={"xi-api-key": el_key},
+            timeout=30.0,
+        )
+        if resp.status_code != 200:
+            return {"status": "ok"}
+        data = resp.json()
+
+    transcript = data.get("transcript", [])
+
+    visitor = db.query(Visitor).filter(Visitor.anonymous_id == f"voice:{conversation_id}").first()
+    if not visitor:
+        visitor = Visitor(
+            id=uuid.uuid4(),
+            anonymous_id=f"voice:{conversation_id}",
+            metadata_={"channel": "voice", "conversation_id": conversation_id},
+        )
+        db.add(visitor)
+        db.flush()
+
+    conversation = Conversation(
+        id=uuid.uuid4(),
+        visitor_id=visitor.id,
+        channel=ChannelEnum.voice,
+        agent=AgentEnum.voice,
+        ended_at=datetime.utcnow(),
+    )
+    db.add(conversation)
+    db.flush()
+
+    for msg in transcript:
+        role = msg.get("role", "user")
+        content = msg.get("message", "")
+        if content and role in ("agent", "user"):
+            db.add(Message(
+                id=uuid.uuid4(),
+                conversation_id=conversation.id,
+                role=MessageRoleEnum.user if role == "user" else MessageRoleEnum.assistant,
+                content=content,
+            ))
+
+    db.commit()
+    return {"status": "ok"}
+
+
 # ── Legacy Vapi endpoints (kept for compatibility) ──────────────────────────
 
 @router.get("/config")
