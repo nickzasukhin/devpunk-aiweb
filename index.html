@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <title>DevPunks — AI-first development company</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -704,19 +705,17 @@
   }
 
   // ── CHAT ──
-  const agentReplies = {
-    en: [
-      "Hi! I'm the DevPunks AI assistant. Tell me more about your project — what problem are you trying to solve?",
-      "That sounds like a great fit for us. We've built similar solutions before. Could you share your timeline and budget range?",
-      "Perfect. Our team will reach out within 24 hours. Would you like to leave your email or Telegram handle?",
-    ],
-    ru: [
-      "Привет! Я AI-ассистент DevPunks. Расскажите подробнее — какую задачу нужно решить?",
-      "Это как раз наш профиль. Мы делали похожие решения. Какой у вас тайминг и примерный бюджет?",
-      "Отлично. Наша команда свяжется в течение 24 часов. Оставьте email или Telegram?",
-    ]
-  };
-  let replyIdx = 0;
+  const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8002'
+    : 'https://api.devpunks.io';
+
+  // visitor_id persisted in localStorage
+  let visitorId = localStorage.getItem('dp_visitor_id');
+  if (!visitorId) {
+    visitorId = crypto.randomUUID();
+    localStorage.setItem('dp_visitor_id', visitorId);
+  }
+  const history = [];
 
   const agentAvatarSVG = `<svg viewBox="308 0 155 210" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
     <path d="M404.431 77.2407L385.797 98.92C387.364 102.561 388.232 106.589 388.232 111.074C388.232 118.863 385.894 125.35 381.217 130.583C376.54 135.792 370.369 138.42 362.655 138.42C355.158 138.42 349.035 135.84 344.286 130.703C339.537 125.543 337.175 119.032 337.175 111.098C337.175 103.188 339.537 96.6532 344.286 91.5167C349.035 86.3561 355.158 83.8 362.655 83.8C367.983 83.8 372.515 85.1263 376.396 87.6101L392.426 65.979C385.17 61.3249 376.902 58.9375 367.573 58.9375C355.086 58.9375 345.226 63.4711 338.019 72.5383V61.5902H311.936V202.542H338.525V150.405C345.757 158.99 355.472 163.283 367.669 163.283C381.386 163.283 392.812 158.315 401.924 148.356C411.061 138.396 415.641 125.977 415.641 111.098C415.641 97.7866 411.76 86.5973 404.431 77.2407Z" fill="currentColor"/>
@@ -734,6 +733,7 @@
     `;
     wrap.appendChild(msg);
     wrap.scrollTop = wrap.scrollHeight;
+    return msg;
   }
 
   function addTyping() {
@@ -749,7 +749,7 @@
     wrap.scrollTop = wrap.scrollHeight;
   }
 
-  function sendMessage() {
+  async function sendMessage() {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
     if (!text) return;
@@ -757,13 +757,62 @@
     addMsg(text, 'user');
     input.value = '';
     input.style.height = 'auto';
+    history.push({ role: 'user', content: text });
     addTyping();
-    setTimeout(() => {
+
+    try {
+      const res = await fetch(`${API_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visitor_id: visitorId,
+          message: text,
+          history: history.slice(-10),
+          fingerprint: navigator.userAgent,
+          metadata: { lang, url: location.href }
+        })
+      });
+
       document.getElementById('typing-indicator')?.remove();
-      const replies = agentReplies[lang];
-      addMsg(replies[replyIdx % replies.length], 'agent');
-      replyIdx++;
-    }, 1200);
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      // SSE stream
+      const wrap = document.getElementById('messages');
+      wrap.style.display = 'flex';
+      const msgEl = document.createElement('div');
+      msgEl.className = 'msg agent';
+      msgEl.innerHTML = `<div class="msg-avatar">${agentAvatarSVG}</div><div class="msg-bubble" id="streaming-bubble"></div>`;
+      wrap.appendChild(msgEl);
+
+      const bubble = document.getElementById('streaming-bubble');
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        for (const line of chunk.split('\n')) {
+          if (line.startsWith('data: ')) {
+            const token = line.slice(6);
+            if (token === '[DONE]') continue;
+            fullText += token;
+            bubble.textContent = fullText;
+            wrap.scrollTop = wrap.scrollHeight;
+          }
+        }
+      }
+
+      bubble.removeAttribute('id');
+      history.push({ role: 'assistant', content: fullText });
+
+    } catch (e) {
+      document.getElementById('typing-indicator')?.remove();
+      addMsg('Упс, что-то пошло не так. Попробуйте ещё раз.', 'agent');
+      console.error('Chat error:', e);
+    }
   }
 
   function handleKey(e) {
