@@ -7,6 +7,19 @@ const ANTHROPIC_MODELS = ['claude-sonnet-4-6','claude-haiku-4-5','claude-opus-4-
 const OPENAI_MODELS = ['gpt-4o','gpt-4o-mini','gpt-4-turbo']
 const EMBEDDING_MODELS = ['text-embedding-3-small','text-embedding-3-large','voyage-3']
 const ELEVENLABS_MODELS = ['eleven_multilingual_v2','eleven_turbo_v2_5']
+const VAPI_VOICES = [
+  {id:'Elliot',label:'Elliot (Male, EN)'},
+  {id:'Jennifer',label:'Jennifer (Female, EN)'},
+  {id:'Rohan',label:'Rohan (Male, EN-IN)'},
+  {id:'Lily',label:'Lily (Female, EN-GB)'},
+  {id:'Paola',label:'Paola (Female, EN)'},
+  {id:'Cole',label:'Cole (Male, EN)'},
+  {id:'Ryan',label:'Ryan (Male, EN)'},
+  {id:'Bria',label:'Bria (Female, EN)'},
+  {id:'Aria',label:'Aria (Female, EN)'},
+  {id:'Roger',label:'Roger (Male, EN)'},
+  {id:'Sarah',label:'Sarah (Female, EN)'},
+]
 
 export default function AgentConfig() {
   const { user } = useAuth()
@@ -88,24 +101,50 @@ export default function AgentConfig() {
 
         {/* Voice Agent */}
         <div style={{background:'var(--bg-card)',border:'1px solid var(--border)',borderRadius:8,padding:20}}>
-          <h3 style={{fontWeight:600,marginBottom:16,fontSize:14}}>🎙 Voice Agent (ElevenLabs)</h3>
+          <h3 style={{fontWeight:600,marginBottom:16,fontSize:14}}>🎙 Voice Agent</h3>
           <label style={{display:'block',marginBottom:14}}>
             <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:5}}>System Prompt</div>
             <textarea rows={4} value={cfg.voice_system_prompt||''} onChange={e=>set('voice_system_prompt',e.target.value)} style={{resize:'vertical'}} />
           </label>
           <label style={{display:'block',marginBottom:14}}>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:5}}>Voice ID</div>
-            <input value={cfg.elevenlabs_voice_id||''} onChange={e=>set('elevenlabs_voice_id',e.target.value)} placeholder="ElevenLabs Voice ID" />
+            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:5}}>First Message (greeting)</div>
+            <input value={cfg.voice_first_message||''} onChange={e=>set('voice_first_message',e.target.value)} placeholder="Hi! I'm the DevPunks AI assistant..." />
           </label>
-          <label style={{display:'block',marginBottom:14}}>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:5}}>Model</div>
-            <select value={cfg.elevenlabs_model||'eleven_multilingual_v2'} onChange={e=>set('elevenlabs_model',e.target.value)}>
-              {ELEVENLABS_MODELS.map(m=><option key={m}>{m}</option>)}
-            </select>
-          </label>
-          <Slider k="elevenlabs_stability" label="Stability" />
-          <Slider k="elevenlabs_similarity_boost" label="Similarity Boost" />
-          <Slider k="elevenlabs_style" label="Style / Emotion" />
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:6}}>Voice Provider</div>
+            <div style={{display:'flex',gap:12}}>
+              {['vapi','elevenlabs'].map(p=>(
+                <label key={p} style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',fontSize:13}}>
+                  <input type="radio" name="voice_provider" value={p} checked={(cfg.voice_provider||'vapi')===p} onChange={()=>set('voice_provider',p)} style={{width:'auto',accentColor:'var(--accent)'}} />
+                  {p==='vapi'?'Vapi (built-in)':'ElevenLabs'}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {(cfg.voice_provider||'vapi')==='vapi' ? (<>
+            <label style={{display:'block',marginBottom:14}}>
+              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:5}}>Voice</div>
+              <select value={cfg.vapi_voice_id||'Elliot'} onChange={e=>set('vapi_voice_id',e.target.value)}>
+                {VAPI_VOICES.map(v=><option key={v.id} value={v.id}>{v.label}</option>)}
+              </select>
+            </label>
+            <Slider k="vapi_voice_speed" label="Speed" min={0.25} max={2} step={0.05} />
+          </>) : (<>
+            <label style={{display:'block',marginBottom:14}}>
+              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:5}}>Voice ID</div>
+              <input value={cfg.elevenlabs_voice_id||''} onChange={e=>set('elevenlabs_voice_id',e.target.value)} placeholder="ElevenLabs Voice ID" />
+            </label>
+            <label style={{display:'block',marginBottom:14}}>
+              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:5}}>Model</div>
+              <select value={cfg.elevenlabs_model||'eleven_multilingual_v2'} onChange={e=>set('elevenlabs_model',e.target.value)}>
+                {ELEVENLABS_MODELS.map(m=><option key={m}>{m}</option>)}
+              </select>
+            </label>
+            <Slider k="elevenlabs_stability" label="Stability" />
+            <Slider k="elevenlabs_similarity_boost" label="Similarity Boost" />
+            <Slider k="elevenlabs_style" label="Style / Emotion" />
+          </>)}
         </div>
 
         {/* Embeddings */}

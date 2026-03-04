@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/voice", tags=["voice"])
 
 VOICE_PROMPT_DEFAULT = """You are the DevPunks AI voice assistant. You represent DevPunks, an AI-first development company.
 
-Keep your answers SHORT and conversational — this is a voice call, not a chat. 
+Keep your answers SHORT and conversational — this is a voice call, not a chat.
 No markdown formatting, no bullet points, no code snippets.
 Use natural spoken language. Max 2-3 sentences per response.
 
@@ -21,46 +21,69 @@ You can discuss: who DevPunks is, our services, tech stack, cases, how to get in
 Respond in the same language the user speaks (Russian or English).
 """
 
+VOICE_FIRST_MESSAGE_DEFAULT = "Hi! I'm the DevPunks AI assistant. How can I help you today?"
+
+
+def _get_config_value(db: Session, key: str):
+    from database import Config
+    cfg = db.query(Config).filter(Config.key == key).first()
+    return cfg.value if cfg else None
+
+
+def _build_voice_config(db: Session) -> dict:
+    """Build Vapi voice config based on voice_provider setting in DB."""
+    voice_provider = _get_config_value(db, "voice_provider") or "vapi"
+
+    if voice_provider == "elevenlabs":
+        el_key = _get_config_value(db, "elevenlabs_api_key") or settings.ELEVENLABS_API_KEY
+        el_voice = _get_config_value(db, "elevenlabs_voice_id") or settings.ELEVENLABS_VOICE_ID
+        if el_key and el_voice:
+            return {
+                "provider": "11labs",
+                "voiceId": el_voice,
+                "model": _get_config_value(db, "elevenlabs_model") or settings.ELEVENLABS_MODEL,
+                "stability": float(_get_config_value(db, "elevenlabs_stability") or settings.ELEVENLABS_STABILITY),
+                "similarityBoost": float(_get_config_value(db, "elevenlabs_similarity_boost") or settings.ELEVENLABS_SIMILARITY_BOOST),
+                "style": float(_get_config_value(db, "elevenlabs_style") or settings.ELEVENLABS_STYLE),
+            }
+
+    # Default: Vapi built-in voice
+    vapi_voice_id = _get_config_value(db, "vapi_voice_id") or "Elliot"
+    vapi_speed_raw = _get_config_value(db, "vapi_voice_speed")
+    voice_cfg: dict = {"provider": "vapi", "voiceId": vapi_voice_id}
+    if vapi_speed_raw:
+        voice_cfg["speed"] = float(vapi_speed_raw)
+    return voice_cfg
+
+
+def _build_model_config(db: Session, system_prompt: str) -> dict:
+    """Build Vapi model config based on LLM provider setting in DB."""
+    llm_provider = _get_config_value(db, "llm_provider") or settings.LLM_PROVIDER
+    llm_model = _get_config_value(db, "llm_model") or settings.OPENAI_MODEL
+
+    if llm_provider == "openai":
+        return {
+            "provider": "openai",
+            "model": llm_model,
+            "messages": [{"role": "system", "content": system_prompt}],
+        }
+    return {
+        "provider": "anthropic",
+        "model": settings.ANTHROPIC_MODEL,
+        "messages": [{"role": "system", "content": system_prompt}],
+    }
+
 
 @router.get("/config")
 async def get_voice_config(db: Session = Depends(get_db)):
     """Return Vapi assistant config for the browser SDK (no auth required)."""
     system_prompt = _get_config_value(db, "voice_system_prompt") or VOICE_PROMPT_DEFAULT
-
-    llm_provider = _get_config_value(db, "llm_provider") or settings.LLM_PROVIDER
-    llm_model = _get_config_value(db, "llm_model") or settings.OPENAI_MODEL
-
-    if llm_provider == "openai":
-        model_config = {
-            "provider": "openai",
-            "model": llm_model,
-            "messages": [{"role": "system", "content": system_prompt}],
-        }
-    else:
-        model_config = {
-            "provider": "anthropic",
-            "model": settings.ANTHROPIC_MODEL,
-            "messages": [{"role": "system", "content": system_prompt}],
-        }
-
-    el_key = _get_config_value(db, "elevenlabs_api_key") or settings.ELEVENLABS_API_KEY
-    el_voice = _get_config_value(db, "elevenlabs_voice_id") or settings.ELEVENLABS_VOICE_ID
-    if el_key and el_voice:
-        voice_config = {
-            "provider": "11labs",
-            "voiceId": el_voice,
-            "model": _get_config_value(db, "elevenlabs_model") or settings.ELEVENLABS_MODEL,
-            "stability": float(_get_config_value(db, "elevenlabs_stability") or settings.ELEVENLABS_STABILITY),
-            "similarityBoost": float(_get_config_value(db, "elevenlabs_similarity_boost") or settings.ELEVENLABS_SIMILARITY_BOOST),
-            "style": float(_get_config_value(db, "elevenlabs_style") or settings.ELEVENLABS_STYLE),
-        }
-    else:
-        voice_config = {"provider": "vapi", "voiceId": "Elliot"}
+    first_message = _get_config_value(db, "voice_first_message") or VOICE_FIRST_MESSAGE_DEFAULT
 
     return {
-        "model": model_config,
-        "voice": voice_config,
-        "firstMessage": "Hi! I'm the DevPunks AI assistant. How can I help you today?",
+        "model": _build_model_config(db, system_prompt),
+        "voice": _build_voice_config(db),
+        "firstMessage": first_message,
         "serverUrl": "https://api.devpunks.io/api/voice/webhook",
     }
 
@@ -74,44 +97,13 @@ async def vapi_webhook(request: Request, db: Session = Depends(get_db)):
     # Server message — provide system prompt and tools
     if message_type == "assistant-request":
         system_prompt = _get_config_value(db, "voice_system_prompt") or VOICE_PROMPT_DEFAULT
-
-        # Use same LLM provider as chat (from DB config)
-        llm_provider = _get_config_value(db, "llm_provider") or settings.LLM_PROVIDER
-        llm_model = _get_config_value(db, "llm_model") or settings.OPENAI_MODEL
-
-        if llm_provider == "openai":
-            model_config = {
-                "provider": "openai",
-                "model": llm_model,
-                "messages": [{"role": "system", "content": system_prompt}],
-            }
-        else:
-            model_config = {
-                "provider": "anthropic",
-                "model": settings.ANTHROPIC_MODEL,
-                "messages": [{"role": "system", "content": system_prompt}],
-            }
-
-        # Use ElevenLabs if configured, otherwise Vapi built-in voice
-        el_key = _get_config_value(db, "elevenlabs_api_key") or settings.ELEVENLABS_API_KEY
-        el_voice = _get_config_value(db, "elevenlabs_voice_id") or settings.ELEVENLABS_VOICE_ID
-        if el_key and el_voice:
-            voice_config = {
-                "provider": "11labs",
-                "voiceId": el_voice,
-                "model": _get_config_value(db, "elevenlabs_model") or settings.ELEVENLABS_MODEL,
-                "stability": float(_get_config_value(db, "elevenlabs_stability") or settings.ELEVENLABS_STABILITY),
-                "similarityBoost": float(_get_config_value(db, "elevenlabs_similarity_boost") or settings.ELEVENLABS_SIMILARITY_BOOST),
-                "style": float(_get_config_value(db, "elevenlabs_style") or settings.ELEVENLABS_STYLE),
-            }
-        else:
-            voice_config = {"provider": "vapi", "voiceId": "Elliot"}
+        first_message = _get_config_value(db, "voice_first_message") or VOICE_FIRST_MESSAGE_DEFAULT
 
         return {
             "assistant": {
-                "model": model_config,
-                "voice": voice_config,
-                "firstMessage": "Hi! I'm the DevPunks AI assistant. How can I help you today?",
+                "model": _build_model_config(db, system_prompt),
+                "voice": _build_voice_config(db),
+                "firstMessage": first_message,
             }
         }
 
@@ -121,12 +113,6 @@ async def vapi_webhook(request: Request, db: Session = Depends(get_db)):
         return {"status": "ok"}
 
     return {"status": "ok"}
-
-
-def _get_config_value(db: Session, key: str):
-    from database import Config
-    cfg = db.query(Config).filter(Config.key == key).first()
-    return cfg.value if cfg else None
 
 
 def _save_voice_conversation(db: Session, body: dict):
