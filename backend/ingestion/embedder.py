@@ -19,21 +19,21 @@ def ensure_collection(client: QdrantClient, vector_size: int = 1536):
         )
 
 
-def get_embedding(text: str) -> list[float]:
+def get_embedding(text: str, api_key: str = None) -> list[float]:
     """Get embedding vector for text."""
     provider = settings.EMBEDDING_PROVIDER
     model = settings.EMBEDDING_MODEL
 
     if provider == "openai":
         from openai import OpenAI
-        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        client = OpenAI(api_key=api_key or settings.OPENAI_API_KEY)
         response = client.embeddings.create(input=text, model=model)
         return response.data[0].embedding
     else:
         raise ValueError(f"Unsupported embedding provider: {provider}")
 
 
-def embed_and_store(chunks: list[str], document_id: str, filename: str) -> int:
+def embed_and_store(chunks: list[str], document_id: str, filename: str, api_key: str = None) -> int:
     """Embed chunks and store in Qdrant. Returns number of chunks stored."""
     client = get_qdrant_client()
 
@@ -41,12 +41,12 @@ def embed_and_store(chunks: list[str], document_id: str, filename: str) -> int:
     if not chunks:
         return 0
 
-    first_vec = get_embedding(chunks[0])
+    first_vec = get_embedding(chunks[0], api_key=api_key)
     ensure_collection(client, vector_size=len(first_vec))
 
     points = []
     for i, chunk in enumerate(chunks):
-        vec = get_embedding(chunk) if i > 0 else first_vec
+        vec = get_embedding(chunk, api_key=api_key) if i > 0 else first_vec
         points.append(PointStruct(
             id=str(uuid.uuid4()),
             vector=vec,
@@ -74,10 +74,10 @@ def delete_document_chunks(document_id: str):
     )
 
 
-def search_similar(query: str, top_k: int = 5) -> list[dict]:
+def search_similar(query: str, top_k: int = 5, api_key: str = None) -> list[dict]:
     """Search for similar chunks."""
     client = get_qdrant_client()
-    query_vec = get_embedding(query)
+    query_vec = get_embedding(query, api_key=api_key)
     results = client.search(
         collection_name=settings.QDRANT_COLLECTION,
         query_vector=query_vec,

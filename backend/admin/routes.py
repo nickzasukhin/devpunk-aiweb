@@ -40,8 +40,11 @@ async def upload_document(
     text = parse_file(content, file.filename)
     chunks = chunk_text(text)
 
+    db_config = {c.key: c.value for c in db.query(Config).all()}
+    api_key = db_config.get("openai_api_key") or None
+
     doc_id = str(uuid.uuid4())
-    count = embed_and_store(chunks, doc_id, file.filename)
+    count = embed_and_store(chunks, doc_id, file.filename, api_key=api_key)
 
     doc = Document(
         id=uuid.UUID(doc_id),
@@ -81,10 +84,13 @@ async def reindex_document(doc_id: str, request: Request, db: Session = Depends(
     with open(saved_path, "rb") as f:
         content = f.read()
 
+    db_config = {c.key: c.value for c in db.query(Config).all()}
+    api_key = db_config.get("openai_api_key") or None
+
     delete_document_chunks(doc_id)
     text = parse_file(content, doc.filename)
     chunks = chunk_text(text)
-    count = embed_and_store(chunks, doc_id, doc.filename)
+    count = embed_and_store(chunks, doc_id, doc.filename, api_key=api_key)
 
     doc.chunk_count = count
     doc.status = "indexed"
