@@ -116,7 +116,7 @@ export default function AgentConfig() {
               {['vapi','elevenlabs'].map(p=>(
                 <label key={p} style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',fontSize:13}}>
                   <input type="radio" name="voice_provider" value={p} checked={(cfg.voice_provider||'vapi')===p} onChange={()=>set('voice_provider',p)} style={{width:'auto',accentColor:'var(--accent)'}} />
-                  {p==='vapi'?'Vapi (built-in)':'ElevenLabs'}
+                  {p==='vapi'?'Vapi (built-in)':'ElevenLabs Conversational AI'}
                 </label>
               ))}
             </div>

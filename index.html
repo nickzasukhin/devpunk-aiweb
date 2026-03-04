@@ -9,8 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script type="module">
-    import Vapi from 'https://cdn.jsdelivr.net/npm/@vapi-ai/web/+esm';
-    window.Vapi = Vapi.default || Vapi;
+    import { Conversation } from 'https://cdn.jsdelivr.net/npm/@11labs/client@latest/+esm';
+    window.ElevenLabsConversation = Conversation;
   </script>
   <style>
     :root[data-theme="dark"] {
@@ -937,8 +937,7 @@
   }
 
   // ── VOICE ──
-  const VAPI_PUBLIC_KEY = '7691bdca-4660-4d4a-b033-3ce199951ee2';
-  let vapiInstance = null;
+  let conversationInstance = null;
   let callActive = false;
   let currentVolume = 0;
   let animFrame = null;
@@ -957,20 +956,19 @@
     label.textContent = 'Talk to AI';
     document.getElementById('voice-overlay').classList.remove('open');
     if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
-    vapiInstance = null;
+    conversationInstance = null;
   }
 
   function closeVoiceModal() {
-    if (vapiInstance) endVoiceCall();
+    if (conversationInstance) endVoiceCall();
     else resetVoiceState();
   }
 
   function endVoiceCall() {
-    if (!vapiInstance) return;
-    try { vapiInstance.stop(); } catch(e) {}
-    // Fallback: if call-end never fires, reset after 2s
-    const inst = vapiInstance;
-    setTimeout(() => { if (vapiInstance === inst) resetVoiceState(); }, 2000);
+    if (!conversationInstance) return;
+    try { conversationInstance.endSession(); } catch(e) {}
+    const inst = conversationInstance;
+    setTimeout(() => { if (conversationInstance === inst) resetVoiceState(); }, 2000);
   }
 
   function setVoiceStatus(text) {
@@ -1015,42 +1013,56 @@
   async function toggleVoice() {
     const btn = document.getElementById('mic-btn');
     const label = btn.querySelector('.mic-label');
-    if (vapiInstance) { endVoiceCall(); return; }
-    if (!window.Vapi) { setVoiceStatus('Loading SDK...'); return; }
+    if (conversationInstance) { endVoiceCall(); return; }
+    if (!window.ElevenLabsConversation) { setVoiceStatus('Loading SDK...'); return; }
     btn.classList.add('connecting');
     label.textContent = 'Connecting...';
     openVoiceModal();
     setVoiceStatus('Connecting...');
-    let assistantConfig;
+    let signedUrl;
     try {
-      const res = await fetch(`${API_URL}/api/voice/config`);
-      assistantConfig = await res.json();
+      const res = await fetch(`${API_URL}/api/voice/convai-token`);
+      const data = await res.json();
+      signedUrl = data.signedUrl;
     } catch (e) {
       console.error('Failed to load voice config:', e);
       setVoiceStatus('Connection error — try again');
       setTimeout(resetVoiceState, 2000);
       return;
     }
-    vapiInstance = new window.Vapi(VAPI_PUBLIC_KEY);
-    vapiInstance.on('call-start', () => {
-      callActive = true;
-      btn.classList.remove('connecting'); btn.classList.add('active');
-      label.textContent = 'End call';
-      setVoiceStatus('Listening...');
-    });
-    vapiInstance.on('volume-level', (v) => { currentVolume = v; });
-    vapiInstance.on('speech-start', () => setVoiceStatus('You are speaking...'));
-    vapiInstance.on('speech-end', () => setVoiceStatus('AI is responding...'));
-    vapiInstance.on('call-end', () => { resetVoiceState(); });
-    vapiInstance.on('error', (e) => {
-      console.error('Vapi error:', JSON.stringify(e, null, 2));
-      const errMsg = e?.error?.message || e?.message || '';
-      const msg = errMsg.toLowerCase().includes('permission')
-        ? 'Microphone access denied' : 'Connection error — try again';
-      setVoiceStatus(msg);
+    try {
+      conversationInstance = await window.ElevenLabsConversation.startSession({
+        signedUrl,
+        onConnect: () => {
+          callActive = true;
+          btn.classList.remove('connecting'); btn.classList.add('active');
+          label.textContent = 'End call';
+          setVoiceStatus('Listening...');
+        },
+        onDisconnect: () => { resetVoiceState(); },
+        onError: (error) => {
+          console.error('ElevenLabs error:', error);
+          const msg = String(error).toLowerCase().includes('permission')
+            ? 'Microphone access denied' : 'Connection error — try again';
+          setVoiceStatus(msg);
+          setTimeout(resetVoiceState, 3000);
+        },
+        onModeChange: ({ mode }) => {
+          if (!callActive) return;
+          if (mode === 'speaking') {
+            currentVolume = 0.75;
+            setVoiceStatus('AI is responding...');
+          } else {
+            currentVolume = 0;
+            setVoiceStatus('Listening...');
+          }
+        },
+      });
+    } catch(e) {
+      console.error('Failed to start session:', e);
+      setVoiceStatus('Connection error — try again');
       setTimeout(resetVoiceState, 3000);
-    });
-    vapiInstance.start(assistantConfig);
+    }
   }
 
   function autoResize(el) {
