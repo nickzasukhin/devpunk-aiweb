@@ -1044,17 +1044,13 @@
     vapiInstance.on('call-end', () => { resetVoiceState(); });
     vapiInstance.on('error', (e) => {
       console.error('Vapi error:', JSON.stringify(e, null, 2));
-      const errMsg = e?.error?.message || e?.message || JSON.stringify(e);
-      console.error('Vapi error detail:', errMsg);
+      const errMsg = e?.error?.message || e?.message || '';
       const msg = errMsg.toLowerCase().includes('permission')
-        ? 'Microphone access denied' : `Error: ${errMsg.slice(0,80)}`;
+        ? 'Microphone access denied' : 'Connection error — try again';
       setVoiceStatus(msg);
       setTimeout(resetVoiceState, 3000);
     });
-    // serverUrl is for dashboard config only, strip it for web SDK calls
-    const { serverUrl: _unused, ...startConfig } = assistantConfig;
-    console.log('Vapi start config:', JSON.stringify(startConfig, null, 2));
-    vapiInstance.start(startConfig);
+    vapiInstance.start(assistantConfig);
   }
 
   function autoResize(el) {

@@ -81,6 +81,11 @@ async def get_voice_config(db: Session = Depends(get_db)):
     first_message = _get_config_value(db, "voice_first_message") or VOICE_FIRST_MESSAGE_DEFAULT
 
     return {
+        "transcriber": {
+            "provider": "deepgram",
+            "model": "nova-2",
+            "language": "multi",  # auto-detects EN + RU
+        },
         "model": _build_model_config(db, system_prompt),
         "voice": _build_voice_config(db),
         "firstMessage": first_message,
