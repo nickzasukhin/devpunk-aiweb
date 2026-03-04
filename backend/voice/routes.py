@@ -117,14 +117,8 @@ async def get_voice_config(db: Session = Depends(get_db)):
 @router.post("/webhook")
 async def vapi_webhook(request: Request, db: Session = Depends(get_db)):
     """Handle Vapi.ai webhook for voice agent interactions."""
-    import logging
-    logger = logging.getLogger(__name__)
     body = await request.json()
     message_type = body.get("message", {}).get("type")
-    logger.warning(f"[VAPI] event={message_type}")
-    if message_type == "conversation-update":
-        conv = body.get("message", {}).get("conversation", [])
-        logger.warning(f"[VAPI] conversation={conv}")
 
     # Server message — provide system prompt and tools
     if message_type == "assistant-request":
